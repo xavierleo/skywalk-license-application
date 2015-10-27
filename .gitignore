@@ -1,0 +1,17 @@
+/build/
+
+#Eclipse
+.classpath
+.project
+africappbackend.iml
+
+#Intellij
+.idea/
+.metadata/
+.settings/*
+RemoteSystemsTempFiles
+
+WebContent/WEB-INF/classes/
+
+#Maven
+target/
