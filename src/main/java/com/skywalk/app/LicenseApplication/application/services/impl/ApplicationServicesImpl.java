@@ -5,6 +5,7 @@ package main.java.com.skywalk.app.LicenseApplication.application.services.impl;
 
 import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.application.services.ApplicationServices;
+import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.ApplicationCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.CompanyCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ApplicationCrudServiceImpl;
@@ -16,6 +17,7 @@ import org.bson.types.ObjectId;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.ws.rs.core.MediaType;
 import java.util.logging.Level;
 
 /**
@@ -57,8 +59,19 @@ public class ApplicationServicesImpl implements ApplicationServices {
             JsonObject registeredApplication = Json.createObjectBuilder()
                     .add("","")
                     .build();
+
+            JsonObject applicationLinks = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/application/id")
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
             return Json.createObjectBuilder()
-                    .add("Application", registeredApplication).build();
+                    .add("Application", registeredApplication)
+                    .add("Application", registeredApplication)
+                    .add("Link",applicationLinks)
+                    .build();
         }catch (Exception e){
             log.log(Level.WARNING, "There was an error registering the application", e);
             return null;
