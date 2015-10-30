@@ -1,9 +1,6 @@
 package main.java.com.skywalk.app.LicenseApplication.domain.factory;
 
-import main.java.com.skywalk.app.LicenseApplication.domain.models.Company;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.ContactDetails;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.EmailConfiguration;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.User;
+import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
 
 import javax.json.JsonObject;
@@ -43,5 +40,14 @@ public class Factory {
         u.setRole(user.getString("role"));
         u.setContactDetails(c);
         return u;
+    }
+
+    public static Application buildApplication(JsonObject application){
+        Application a = new Application();
+        a.setId(new ObjectId());
+        a.setName(application.getString("name"));
+        a.setShortDescription(application.getString("shortDescription"));
+        a.setLongDescription(application.getString("longDescription"));
+        return a;
     }
 }
