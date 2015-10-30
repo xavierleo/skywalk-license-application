@@ -1,20 +1,18 @@
 package main.java.com.skywalk.app.LicenseApplication.infrastructure;
 
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.ApplicationCrudService;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ApplicationCrudServiceImpl;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.Application;
+import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
+import main.java.com.skywalk.app.LicenseApplication.application.utilities.ResponseCodes;
 
 public class main {
 
 	public static void main(String[] args) {
-		Application a = new Application();
-		a.setName("Q-Book");
-		a.setShortDescription("Booking System for Service Based Clients");
-		a.setLongDescription("Booking System for Service Based Clients Long Description");
-		
-		Application b = null;
-		ApplicationCrudService acs = new ApplicationCrudServiceImpl();
-		acs.createEntity(b);
+        System.out.println(ResponseCodes.SUCCESS);
+        System.out.println(ResponseCodes.ERROR);
+
+        System.out.println(Link.REL);
+        System.out.println(Link.HREF);
+        System.out.println(Link.METHOD);
+        System.out.println(Link.DATATYPE);
 	}
 
 }
