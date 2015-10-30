@@ -7,7 +7,10 @@ public class main {
 
 	public static void main(String[] args) {
         System.out.println(ResponseCodes.SUCCESS);
-        System.out.println(ResponseCodes.ERROR);
+        System.out.println(ResponseCodes.SUCCESS_CODE);
+        System.out.println(ResponseCodes.SUCCESS_MESSAGE);
+        System.out.println(ResponseCodes.ERROR_CODE);
+        System.out.println(ResponseCodes.ERROR_MESSAGE);
 
         System.out.println(Link.REL);
         System.out.println(Link.HREF);
