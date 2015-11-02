@@ -8,19 +8,10 @@ import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.application.services.ApplicationServices;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.ResponseCodes;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.ApplicationCrudService;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.ClientCrudService;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.CompanyCrudService;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.PriceRangeCrudService;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ApplicationCrudServiceImpl;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ClientCrudServiceImpl;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.CompanyCrudServiceImpl;
-import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.PriceRangeCrudServiceImpl;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.*;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.*;
 import main.java.com.skywalk.app.LicenseApplication.domain.factory.Factory;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.Application;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.Client;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.Company;
-import main.java.com.skywalk.app.LicenseApplication.domain.models.PriceRange;
+import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
 
 import javax.json.Json;
@@ -41,12 +32,14 @@ public class ApplicationServicesImpl implements ApplicationServices {
     private CompanyCrudService companyCrudService;
     private PriceRangeCrudService priceRangeCrudService;
     private ClientCrudService clientCrudService;
+    private ClientApplicationCrudService clientApplicationCrudService;
 
     public ApplicationServicesImpl(){
         applicationCrudService = new ApplicationCrudServiceImpl();
         companyCrudService = new CompanyCrudServiceImpl();
         priceRangeCrudService = new PriceRangeCrudServiceImpl();
         clientCrudService = new ClientCrudServiceImpl();
+        clientApplicationCrudService = new ClientApplicationCrudServiceImpl();
     }
 
     @Override
@@ -302,9 +295,7 @@ public class ApplicationServicesImpl implements ApplicationServices {
             //remove all targets that depend on the application(Price Ranges)
             List<PriceRange> priceRanges = toRemove.getPriceRanges();
 
-            for(PriceRange pr: priceRanges){
-                priceRangeCrudService.deleteEntity(pr);
-            }
+            priceRanges.forEach(priceRangeCrudService::deleteEntity);
 
             applicationCrudService.deleteEntity(toRemove);
 
@@ -404,10 +395,30 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .add(Link.METHOD.toString(), "PUT")
                     .build();
 
-            //update the application
-            toEdit.getClients().add(clientToAssign);
+            //first create the bridge
+            ClientApplication clientApplication = new ClientApplication();
+            clientApplication.setId(new ObjectId());
+            clientApplication.setApplication(toEdit);
+            clientApplication.setClient(clientToAssign);
 
+            clientApplicationCrudService.createEntity(clientApplication);
+
+            ClientApplication created = clientApplicationCrudService.findEntityById(clientApplication.getId());
+
+            if(created == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully linked to the client.")
+                        .build();
+
+            toEdit.getClientApplications().add(created);
+            //update the application
             applicationCrudService.updateEntity(toEdit);
+
+            clientToAssign.getClientApplications().add(created);
+            //update the client
+            clientCrudService.updateEntity(clientToAssign);
 
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)

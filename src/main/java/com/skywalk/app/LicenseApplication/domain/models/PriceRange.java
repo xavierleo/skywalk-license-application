@@ -27,7 +27,7 @@ public class PriceRange{
 
     @NotNull private double discountPercentage;
 
-    @NotNull private Double finalPriceWithDiscount;
+    @NotNull private double finalPriceWithDiscount;
 
 
 }

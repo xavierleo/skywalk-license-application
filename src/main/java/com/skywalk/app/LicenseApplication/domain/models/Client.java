@@ -37,12 +37,6 @@ public class Client{
     @Embedded
     private Liason liason;
 
-    //References
     @Reference
-    private List<License> licenses = new ArrayList<>();
-    
-    @Reference
-    private List<Application> applications = new ArrayList<>();
-
-
+    private List<ClientApplication> clientApplications = new ArrayList<>();
 }

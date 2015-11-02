@@ -4,6 +4,7 @@ import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
 
 import javax.json.JsonObject;
+import java.util.Date;
 
 /**
  * Created by xavier on 2015/10/28.
@@ -57,5 +58,19 @@ public class Factory {
         c.setName(client.getString("name"));
         c.setSize(client.getString("size"));
         return c;
+    }
+
+    public static License buildLicense(JsonObject license){
+        License l = new License();
+        l.setId(new ObjectId());
+        l.setDescription(license.getString("description"));
+        l.setPaymentType(license.getString("paymentType"));
+        l.setTotalRequestedUsers(license.getInt("totalRequestedUsers"));
+        l.setTotalAvailableUsers(license.getInt("totalAvailableUsers"));
+        l.setLicenseFee(Double.valueOf(license.getString("licenseFee")));
+        l.setInvoiceDate(new Date(license.getString("invoiceDate")));
+        l.setStartDate(new Date(license.getString("startDate")));
+        l.setEndDate(new Date(license.getString("endDate")));
+        return l;
     }
 }
