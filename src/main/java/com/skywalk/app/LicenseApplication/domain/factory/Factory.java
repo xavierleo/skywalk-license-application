@@ -50,4 +50,12 @@ public class Factory {
         a.setLongDescription(application.getString("longDescription"));
         return a;
     }
+
+    public static Client buildClient(JsonObject client){
+        Client c = new Client();
+        c.setId(new ObjectId());
+        c.setName(client.getString("name"));
+        c.setSize(client.getString("size"));
+        return c;
+    }
 }

@@ -39,10 +39,10 @@ public class Client{
 
     //References
     @Reference
-    private List<License> priceRanges = new ArrayList<>();	
+    private List<License> licenses = new ArrayList<>();
     
     @Reference
-    private List<Application> clients = new ArrayList<>();
+    private List<Application> applications = new ArrayList<>();
 
 
 }

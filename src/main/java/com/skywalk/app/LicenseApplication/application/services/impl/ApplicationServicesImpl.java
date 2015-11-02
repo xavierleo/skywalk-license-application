@@ -3,18 +3,22 @@
  */
 package main.java.com.skywalk.app.LicenseApplication.application.services.impl;
 
+import com.google.gson.Gson;
 import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.application.services.ApplicationServices;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.ResponseCodes;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.ApplicationCrudService;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.ClientCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.CompanyCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.PriceRangeCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ApplicationCrudServiceImpl;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ClientCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.CompanyCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.PriceRangeCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.factory.Factory;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.Application;
+import main.java.com.skywalk.app.LicenseApplication.domain.models.Client;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.Company;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.PriceRange;
 import org.bson.types.ObjectId;
@@ -36,11 +40,13 @@ public class ApplicationServicesImpl implements ApplicationServices {
     private ApplicationCrudService applicationCrudService;
     private CompanyCrudService companyCrudService;
     private PriceRangeCrudService priceRangeCrudService;
+    private ClientCrudService clientCrudService;
 
     public ApplicationServicesImpl(){
         applicationCrudService = new ApplicationCrudServiceImpl();
         companyCrudService = new CompanyCrudServiceImpl();
         priceRangeCrudService = new PriceRangeCrudServiceImpl();
+        clientCrudService = new ClientCrudServiceImpl();
     }
 
     @Override
@@ -88,6 +94,8 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The application was successfully registered.")
+                    .add("Application", Json.createObjectBuilder()
+                                        .add("ID",created.getId().toString()))
                     .add("Link", applicationLinks)
                     .build();
 
@@ -104,9 +112,6 @@ public class ApplicationServicesImpl implements ApplicationServices {
     @Override
     public JsonObject editApplication(JsonObject application) {
         try{
-
-
-            //find the company to register the application against
             if(!ObjectId.isValid(application.getString("applicationId")))
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
@@ -191,10 +196,13 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .add(Link.METHOD.toString(), "PUT")
                     .build();
 
+            Gson pojoParser = new Gson();
+
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The application was successfully retrieved.")
+                    .add("Application", pojoParser.toJson(toView))
                     .add("Link", Json.createArrayBuilder()
                                     .add(deleteLink)
                                     .add(editLink)
@@ -321,6 +329,216 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .add(ResponseCodes.SUCCESS.toString(), false)
                     .add(ResponseCodes.ERROR_CODE.toString(), 400)
                     .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully removed.")
+                    .build();
+        }
+    }
+
+    @Override
+    public JsonObject assignClientToApplication(JsonObject application) {
+        try{
+            //find the application to register the client against
+            if(!ObjectId.isValid(application.getString("clientId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found, the id is not a valid id.")
+                        .build();
+
+            if(!ObjectId.isValid(application.getString("applicationId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the id is not a valid id.")
+                        .build();
+
+            Client clientToAssign = clientCrudService.findEntityById(new ObjectId(application.getString("clientId")));
+
+            if(clientToAssign == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found with the id provided")
+                        .build();
+
+            Application toEdit = applicationCrudService.findEntityById(new ObjectId(application.getString("applicationId")));
+
+            if(toEdit == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found. Something went wrong while looking for the Application")
+                        .build();
+
+            JsonObject deleteApplicationLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewApplicationLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject deleteClientLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/client/"+application.getString("clientId"))
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewClientLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/client/"+application.getString("clientId"))
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject updateClientLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/client/"+application.getString("clientId"))
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
+
+            //update the application
+            toEdit.getClients().add(clientToAssign);
+
+            applicationCrudService.updateEntity(toEdit);
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The client was successfully added to the application.")
+                    .add("Application", Json.createObjectBuilder()
+                            .add("Link", Json.createArrayBuilder()
+                                    .add(deleteApplicationLink)
+                                    .add(viewApplicationLink)
+                                    .build())
+                            .build())
+                    .add("Client", Json.createObjectBuilder()
+                            .add("Link", Json.createArrayBuilder()
+                                    .add(deleteClientLink)
+                                    .add(updateClientLink)
+                                    .add(viewClientLink)
+                                    .build())
+                            .build())
+                    .build();
+
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error retrieving the application", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully retrieved.")
+                    .build();
+        }
+    }
+
+    @Override
+    public JsonObject assignPriceRangeToApplication(JsonObject application) {
+        try{
+            //find the application to register the client against
+            if(!ObjectId.isValid(application.getString("priceRangeId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not found, the id is not a valid id.")
+                        .build();
+
+            if(!ObjectId.isValid(application.getString("applicationId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the id is not a valid id.")
+                        .build();
+
+            PriceRange priceRangeToAssign = priceRangeCrudService.findEntityById(new ObjectId(application.getString("priceRangeId")));
+
+            if(priceRangeToAssign == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not found with the id provided")
+                        .build();
+
+            Application toEdit = applicationCrudService.findEntityById(new ObjectId(application.getString("applicationId")));
+
+            if(toEdit == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found. Something went wrong while looking for the Application")
+                        .build();
+
+            JsonObject deleteApplicationLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewApplicationLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject deletePriceRangeLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/priceRange/"+application.getString("priceRangeId"))
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewPriceRangeLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/priceRange/"+application.getString("priceRangeId"))
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject updatePriceRangeLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "http://server.url.com/priceRange/"+application.getString("priceRangeId"))
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
+
+            //update the application
+            toEdit.getPriceRanges().add(priceRangeToAssign);
+
+            applicationCrudService.updateEntity(toEdit);
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The client was successfully added to the application.")
+                    .add("Application", Json.createObjectBuilder()
+                            .add("Link", Json.createArrayBuilder()
+                                    .add(deleteApplicationLink)
+                                    .add(viewApplicationLink)
+                                    .build())
+                            .build())
+                    .add("Client", Json.createObjectBuilder()
+                            .add("Link", Json.createArrayBuilder()
+                                    .add(deletePriceRangeLink)
+                                    .add(updatePriceRangeLink)
+                                    .add(viewPriceRangeLink)
+                                    .build())
+                            .build())
+                    .build();
+
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error retrieving the application", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully retrieved.")
                     .build();
         }
     }
