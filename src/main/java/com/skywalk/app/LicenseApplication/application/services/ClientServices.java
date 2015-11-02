@@ -46,13 +46,12 @@ public interface ClientServices {
 
     /**
      *
-     * Returns a JsonObject containing all the Application Details that was successfully retrieved from the
+     * Returns a JsonObject containing all Clients Details that was successfully retrieved from the
      * Skywalk Licensing Application
      *
-     * @param  companyId the name of the company that all the applications are registered to on the Skywalk License Application
      * @return the       JsonObject value containing each applications applications details
      */
-    JsonObject viewAllClients(ObjectId companyId);
+    JsonObject viewAllClients();
 
     /**
      *

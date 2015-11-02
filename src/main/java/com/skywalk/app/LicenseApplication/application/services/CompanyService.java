@@ -8,11 +8,11 @@ import javax.json.JsonObject;
  * Created by xavier on 2015/10/28.
  */
 public interface CompanyService {
-    public JsonObject companyExists(ObjectId companyId);
+    JsonObject companyExists(ObjectId companyId);
 
-    public JsonObject createCompany(JsonObject company);
+    JsonObject createCompany(JsonObject company);
 
-    public JsonObject editCompany(JsonObject company);
+    JsonObject editCompany(JsonObject company);
 
-    public JsonObject viewCompany(String companyId);
+    JsonObject viewCompany(String companyId);
 }
