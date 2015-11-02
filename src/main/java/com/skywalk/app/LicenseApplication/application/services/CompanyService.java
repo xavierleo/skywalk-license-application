@@ -6,11 +6,12 @@ import javax.json.JsonObject;
  * Created by xavier on 2015/10/28.
  */
 public interface CompanyService {
-    public JsonObject companyExists(String companyId);
 
-    public JsonObject createCompany(JsonObject company);
+    JsonObject companyExists(String companyId);
 
-    public JsonObject editCompany(JsonObject company);
+    JsonObject createCompany(JsonObject company);
 
-    public JsonObject viewCompany(String companyId);
+    JsonObject editCompany(JsonObject company);
+
+    JsonObject viewCompany(String companyId);
 }
