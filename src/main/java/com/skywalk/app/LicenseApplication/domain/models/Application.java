@@ -38,8 +38,7 @@ public class Application{
     //References
     @Reference
     private List<PriceRange> priceRanges = new ArrayList<>();
-    
-    @Reference
-    private List<Client> clients = new ArrayList<>();
 
+    @Reference
+    private List<ClientApplication> clientApplications = new ArrayList<>();
 }

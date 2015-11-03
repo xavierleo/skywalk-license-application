@@ -35,5 +35,5 @@ public class License{
 
 	@NotNull private int totalAvailableUsers;
 
-
+	@NotNull private double licenseFee;
 }

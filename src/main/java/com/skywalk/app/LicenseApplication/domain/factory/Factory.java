@@ -4,6 +4,7 @@ import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
 
 import javax.json.JsonObject;
+import java.util.Date;
 
 /**
  * Created by xavier on 2015/10/28.
@@ -59,7 +60,7 @@ public class Factory {
         return c;
     }
 
-    public static PriceRange buildPriceRange(JsonObject priceRange){
+    public static PriceRange buildPriceRange(JsonObject priceRange) {
         PriceRange p = new PriceRange();
         p.setId(new ObjectId());
         p.setDiscountPercentage(priceRange.getInt("discountPercentage"));
@@ -68,5 +69,18 @@ public class Factory {
         p.setPriceForUserInRange(priceRange.getInt("priceForUsersInRange"));
         p.setFinalPriceWithDiscount((double) priceRange.getInt("finalPriceWithDiscount"));
         return p;
+    }
+    public static License buildLicense(JsonObject license){
+        License l = new License();
+        l.setId(new ObjectId());
+        l.setDescription(license.getString("description"));
+        l.setPaymentType(license.getString("paymentType"));
+        l.setTotalRequestedUsers(license.getInt("totalRequestedUsers"));
+        l.setTotalAvailableUsers(license.getInt("totalAvailableUsers"));
+        l.setLicenseFee(Double.valueOf(license.getString("licenseFee")));
+        l.setInvoiceDate(new Date(license.getString("invoiceDate")));
+        l.setStartDate(new Date(license.getString("startDate")));
+        l.setEndDate(new Date(license.getString("endDate")));
+        return l;
     }
 }
