@@ -58,4 +58,15 @@ public class Factory {
         c.setSize(client.getString("size"));
         return c;
     }
+
+    public static PriceRange buildPriceRange(JsonObject priceRange){
+        PriceRange p = new PriceRange();
+        p.setId(new ObjectId());
+        p.setDiscountPercentage(priceRange.getInt("discountPercentage"));
+        p.setMinAmountUsers(priceRange.getInt("minAmountUsers"));
+        p.setMaxAmountUsers(priceRange.getInt("maxAmountUsers"));
+        p.setPriceForUserInRange(priceRange.getInt("priceForUsersInRange"));
+        p.setFinalPriceWithDiscount((double) priceRange.getInt("finalPriceWithDiscount"));
+        return p;
+    }
 }
