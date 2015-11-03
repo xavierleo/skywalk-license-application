@@ -5,8 +5,10 @@ import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.application.services.ClientServices;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.ResponseCodes;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.ClientApplicationCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.ClientCrudService;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.LicenseCrudService;
+import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ClientApplicationCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.ClientCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.LicenseCrudServiceImpl;
 import main.java.com.skywalk.app.LicenseApplication.domain.factory.Factory;
@@ -28,10 +30,12 @@ public class ClientServicesImpl implements ClientServices {
 
     private ClientCrudService clientCrudService;
     private LicenseCrudService licenseCrudService;
+    private ClientApplicationCrudService clientApplicationCrudService;
 
     public ClientServicesImpl() {
         clientCrudService = new ClientCrudServiceImpl();
         licenseCrudService = new LicenseCrudServiceImpl();
+        clientApplicationCrudService = new ClientApplicationCrudServiceImpl();
     }
 
     @Override
@@ -284,11 +288,17 @@ public class ClientServicesImpl implements ClientServices {
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not removed. Something went wrong while looking for the client")
                         .build();
             //remove all targets that depend on the client(Licences)
-            List<License> licenses = toRemove.getLicenses();
+            List<ClientApplication> clientApplications = clientApplicationCrudService.getClientApplicationByClientId(clientId);
 
-            for(License l: licenses){
-                licenseCrudService.deleteEntity(l);
+            if(clientApplications !=null && clientApplications.size() > 0){
+
+                        for(ClientApplication c: clientApplications){
+                            c.getLicenses().forEach(
+                                    licenseCrudService::deleteEntity
+                            );
+                        }
             }
+
 
             clientCrudService.deleteEntity(toRemove);
 

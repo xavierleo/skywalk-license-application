@@ -6,11 +6,13 @@ import javax.json.JsonObject;
  * Created by xavier on 2015/11/02.
  */
 public interface PriceRangeServices {
-    public JsonObject createPriceRange(JsonObject priceRange);
+    JsonObject createPriceRange(JsonObject priceRange);
 
-    public JsonObject editPriceRange(JsonObject priceRange);
+    JsonObject linkPriceRangeToApplication(JsonObject priceRange);
 
-    public JsonObject deletePriceRange(JsonObject priceRange);
+    JsonObject editPriceRange(JsonObject priceRange);
 
-    public JsonObject viewPriceRange(String priceRangeId);
+    JsonObject deletePriceRange(JsonObject priceRange);
+
+    JsonObject viewPriceRange(String priceRangeId);
 }

@@ -19,9 +19,9 @@ public class PriceRange{
     @Id
     @NotNull private ObjectId id;
 
-    @NotNull @Min(1) private double minAmountUsers;
+    @NotNull @Min(1) private int minAmountUsers;
 
-    @NotNull @Min(1) private double maxAmountUsers;
+    @NotNull @Min(1) private int maxAmountUsers;
 
     @NotNull private double priceForUserInRange;
 

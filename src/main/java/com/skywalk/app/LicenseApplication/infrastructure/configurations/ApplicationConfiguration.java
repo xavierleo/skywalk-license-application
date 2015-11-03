@@ -13,6 +13,11 @@ import javax.ws.rs.ApplicationPath;
 public class ApplicationConfiguration extends ResourceConfig {
 
     public ApplicationConfiguration() {
+        log.info("Setting up Resource Configurations");
+        //register all restful resources
+        packages("main.java.com.skywalk.app.LicenseApplication.application.rest");
 
+        //register DI bindings
+        register(new DependencyInjectionBinder());
     }
 }

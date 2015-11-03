@@ -2,6 +2,7 @@ package main.java.com.skywalk.app.LicenseApplication.domain.factory;
 
 import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
+import org.jasypt.util.password.StrongPasswordEncryptor;
 
 import javax.json.JsonObject;
 import java.util.Date;
@@ -12,14 +13,15 @@ import java.util.Date;
 public class Factory {
     public static Company buildCompany(JsonObject company){
         Company c = new Company();
-        EmailConfiguration emailConfiguration = new EmailConfiguration(company.getJsonObject("emailConfiguration").getString("smptServer"),
-                company.getJsonObject("emailConfiguration").getString("serverPort"),
-                company.getJsonObject("emailConfiguration").getString("authUsername"),
-                company.getJsonObject("emailConfiguration").getString("authPassword"),
-                company.getJsonObject("emailConfiguration").getString("primaryAccountAddress"),
-                company.getJsonObject("emailConfiguration").getString("emailSignature"),
-                company.getJsonObject("emailConfiguration").getString("enableSMTPAuthentication"),
-                company.getJsonObject("emailConfiguration").getString("enableTTLSSupport") );
+        EmailConfiguration emailConfiguration = new EmailConfiguration(
+                company.getJsonObject("EmailConfiguration").getString("smptServer"),
+                company.getJsonObject("EmailConfiguration").getString("serverPort"),
+                company.getJsonObject("EmailConfiguration").getString("authUsername"),
+                company.getJsonObject("EmailConfiguration").getString("authPassword"),
+                company.getJsonObject("EmailConfiguration").getString("primaryAccountAddress"),
+                company.getJsonObject("EmailConfiguration").getString("emailSignature"),
+                company.getJsonObject("EmailConfiguration").getString("enableSMTPAuthentication"),
+                company.getJsonObject("EmailConfiguration").getString("enableTTLSSupport"));
 
         c.setId(new ObjectId());
         c.setName(company.getString("name"));
@@ -30,14 +32,17 @@ public class Factory {
     }
 
     public static User buildUser(JsonObject user){
+        //Encrypt password
+        StrongPasswordEncryptor encryptor = new StrongPasswordEncryptor();
+
         User u = new User();
-        ContactDetails c = new ContactDetails(user.getJsonObject("contactDetails").getString("email"),
-                user.getJsonObject("contactDetails").getString("mobile"));
+        ContactDetails c = new ContactDetails(user.getJsonObject("ContactDetails").getString("email"),
+                user.getJsonObject("ContactDetails").getString("mobile"));
         u.setId(new ObjectId());
         u.setName(user.getString("name"));
         u.setSurname(user.getString("surname"));
         u.setUsername(user.getString("username"));
-        u.setPassword(user.getString("password"));
+        u.setPassword(encryptor.encryptPassword(user.getString("password")));
         u.setRole(user.getString("role"));
         u.setContactDetails(c);
         return u;
@@ -63,11 +68,11 @@ public class Factory {
     public static PriceRange buildPriceRange(JsonObject priceRange) {
         PriceRange p = new PriceRange();
         p.setId(new ObjectId());
-        p.setDiscountPercentage(priceRange.getInt("discountPercentage"));
+        p.setDiscountPercentage(Double.valueOf(priceRange.getString("discountPercentage")));
         p.setMinAmountUsers(priceRange.getInt("minAmountUsers"));
         p.setMaxAmountUsers(priceRange.getInt("maxAmountUsers"));
-        p.setPriceForUserInRange(priceRange.getInt("priceForUsersInRange"));
-        p.setFinalPriceWithDiscount((double) priceRange.getInt("finalPriceWithDiscount"));
+        p.setPriceForUserInRange(Double.valueOf(priceRange.getString("priceForUsersInRange")));
+        p.setFinalPriceWithDiscount((Double.valueOf(priceRange.getString("priceForUsersInRange"))*(Double.valueOf(priceRange.getString("discountPercentage"))/100))+Double.valueOf(priceRange.getString("priceForUsersInRange")));
         return p;
     }
     public static License buildLicense(JsonObject license){

@@ -12,7 +12,9 @@ public interface UserService {
 
      JsonObject editUser(JsonObject user);
 
-     JsonObject deleteUser(JsonObject user);
+     JsonObject deleteUser(String userId);
 
      JsonObject viewUser(String userId);
+
+     JsonObject viewAllUsers();
 }

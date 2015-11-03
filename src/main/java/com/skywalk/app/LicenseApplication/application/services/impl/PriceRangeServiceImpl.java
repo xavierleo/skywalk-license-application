@@ -1,5 +1,6 @@
 package main.java.com.skywalk.app.LicenseApplication.application.services.impl;
 
+import com.google.gson.Gson;
 import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.application.services.PriceRangeServices;
 import main.java.com.skywalk.app.LicenseApplication.application.utilities.Link;
@@ -33,18 +34,10 @@ public class PriceRangeServiceImpl implements PriceRangeServices {
 
     @Override
     public JsonObject createPriceRange(JsonObject priceRange) {
-
         try {
-            PriceRange newPriceRange = Factory.buildPriceRange(priceRange);
+            PriceRange newPriceRange = Factory.buildPriceRange(priceRange.getJsonObject("PriceRange"));
 
-            if(!ObjectId.isValid(priceRange.getString("priceRangeId")))
-                return Json.createObjectBuilder()
-                        .add(ResponseCodes.SUCCESS.toString(), false)
-                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not created.")
-                        .build();
-
-            Application app = applicationCrudService.findEntityById(new ObjectId(priceRange.getString("applicationId")));
+            Application app = applicationCrudService.findEntityById(new ObjectId(priceRange.getJsonObject("Application").getString("applicationId")));
 
             if(app == null)
                 return Json.createObjectBuilder()
@@ -53,25 +46,16 @@ public class PriceRangeServiceImpl implements PriceRangeServices {
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not registered, the application id to link it to was not found.")
                         .build();
 
-            //Check if user exists
-            PriceRange u = priceRangeCrudService.findEntityById(newPriceRange.getId());
-            if(u != null)
-                return Json.createObjectBuilder()
-                        .add(ResponseCodes.SUCCESS.toString(), false)
-                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The user was not registered, the user is already registered.")
-                        .build();
-
-            //Create user
             priceRangeCrudService.createEntity(newPriceRange);
 
             //Add price range to application
             PriceRange dbPriceRange = priceRangeCrudService.findEntityById(newPriceRange.getId());
+
             if(dbPriceRange == null)
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The user was not found, the user was not created successfully.")
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not found, the price range was not created successfully.")
                         .build();
 
             app.getPriceRanges().add(dbPriceRange);
@@ -80,24 +64,33 @@ public class PriceRangeServiceImpl implements PriceRangeServices {
             JsonObject deleteLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "REMOVE")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/pricerange/"+priceRange.getString("priceRangeId"))
+                    .add(Link.HREF.toString(), "/api/pricerange/"+dbPriceRange.getId().toString())
                     .add(Link.METHOD.toString(), "DELETE")
                     .build();
 
             JsonObject viewLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "VIEW")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/pricerange/"+priceRange.getString("priceRangeId"))
+                    .add(Link.HREF.toString(), "/api/pricerange/" + dbPriceRange.getId().toString())
                     .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject updateLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "UPDATE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/pricerange/")
+                    .add(Link.METHOD.toString(), "PUT")
                     .build();
 
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
-                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "Price Range successfully updated.")
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "Price Range successfully created.")
+                    .add("PriceRange", new Gson().toJson(dbPriceRange))
                     .add("Link", Json.createArrayBuilder()
                             .add(deleteLink)
                             .add(viewLink)
+                            .add(updateLink)
                             .build())
                     .build();
 
@@ -107,6 +100,79 @@ public class PriceRangeServiceImpl implements PriceRangeServices {
                     .add(ResponseCodes.SUCCESS.toString(), false)
                     .add(ResponseCodes.ERROR_CODE.toString(), 400)
                     .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not successfully registered.")
+                    .build();
+        }
+    }
+
+    @Override
+    public JsonObject linkPriceRangeToApplication(JsonObject priceRange) {
+        try {
+            if(!ObjectId.isValid(priceRange.getJsonObject("PriceRange").getString("priceRangeId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not found, the id is not a valid id.")
+                        .build();
+
+            PriceRange toBeUpdated = priceRangeCrudService.findEntityById(new ObjectId(priceRange.getJsonObject("PriceRange").getString("priceRangeId")));
+
+            if(!ObjectId.isValid(priceRange.getJsonObject("Application").getString("applicationId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the id is not a valid id.")
+                        .build();
+
+            Application toBeLinkedTo = applicationCrudService.findEntityById(new ObjectId(priceRange.getJsonObject("Application").getString("applicationId")));
+
+            if(toBeUpdated == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The price range was not found, something went wrong.")
+                        .build();
+
+            if(toBeLinkedTo == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, something went wrong.")
+                        .build();
+
+            toBeLinkedTo.getPriceRanges().add(toBeUpdated);
+
+            JsonObject deleteLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/pricerange/"+toBeUpdated.getId().toString())
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/pricerange/"+toBeUpdated.getId().toString())
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            applicationCrudService.updateEntity(toBeLinkedTo);
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "Price Range successfully linked to the application.")
+                    .add("PriceRange", new Gson().toJson(toBeUpdated))
+                    .add("Link", Json.createArrayBuilder()
+                            .add(deleteLink)
+                            .add(viewLink)
+                            .build())
+                    .build();
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error linking the price range to the application", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "Price range was not linked successfully to the application.")
                     .build();
         }
     }

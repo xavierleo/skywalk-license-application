@@ -7,7 +7,7 @@ import javax.json.JsonObject;
  */
 public interface CompanyService {
 
-    JsonObject companyExists(String companyId);
+    JsonObject companyExists();
 
     JsonObject createCompany(JsonObject company);
 

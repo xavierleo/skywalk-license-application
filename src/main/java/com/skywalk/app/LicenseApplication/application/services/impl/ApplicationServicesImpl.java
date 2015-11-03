@@ -45,24 +45,14 @@ public class ApplicationServicesImpl implements ApplicationServices {
     @Override
     public JsonObject registerApplication(JsonObject applicationParam) {
         try{
-            Application application = Factory.buildApplication(applicationParam);
+            Application application = Factory.buildApplication(applicationParam.getJsonObject("Application"));
 
             //find the company to register the application against
-            if(!ObjectId.isValid(applicationParam.getString("companyId")))
+            if(!ObjectId.isValid(applicationParam.getJsonObject("Company").getString("companyId")))
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not registered, the company id to link it to was not a valid id.")
-                        .build();
-
-            //find the company to register the application against
-            Company company = companyCrudService.findEntityById(new ObjectId(applicationParam.getString("companyId")));
-
-            if(company == null)
-                return Json.createObjectBuilder()
-                        .add(ResponseCodes.SUCCESS.toString(), false)
-                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not registered, the company id to link it to was not found.")
                         .build();
 
             applicationCrudService.createEntity(application);
@@ -76,10 +66,26 @@ public class ApplicationServicesImpl implements ApplicationServices {
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully registered. Something went wrong while registering.")
                         .build();
 
+            //find the company to register the application against
+            Company company = companyCrudService.findEntityById(new ObjectId(applicationParam.getJsonObject("Company").getString("companyId")));
+
+            if(company == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not registered, the company id to link it to was not found.")
+                        .build();
+
+
+            //link application to company
+            company.getApplications().add(created);
+
+            companyCrudService.updateEntity(company);
+
             JsonObject applicationLinks = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "VIEW")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/application/id")
+                    .add(Link.HREF.toString(), "/api/application/"+created.getId())
                     .add(Link.METHOD.toString(), "GET")
                     .build();
 
@@ -87,8 +93,7 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The application was successfully registered.")
-                    .add("Application", Json.createObjectBuilder()
-                                        .add("ID",created.getId().toString()))
+                    .add("Application", new Gson().toJson(created))
                     .add("Link", applicationLinks)
                     .build();
 
@@ -105,14 +110,14 @@ public class ApplicationServicesImpl implements ApplicationServices {
     @Override
     public JsonObject editApplication(JsonObject application) {
         try{
-            if(!ObjectId.isValid(application.getString("applicationId")))
+            if(!ObjectId.isValid(application.getJsonObject("Application").getString("applicationId")))
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the id is not a valid id.")
                         .build();
 
-            Application toEdit = applicationCrudService.findEntityById(new ObjectId(application.getString("applicationId")));
+            Application toEdit = applicationCrudService.findEntityById(new ObjectId(application.getJsonObject("Application").getString("applicationId")));
 
             if(toEdit == null)
                 return Json.createObjectBuilder()
@@ -124,14 +129,14 @@ public class ApplicationServicesImpl implements ApplicationServices {
             JsonObject deleteLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "REMOVE")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.HREF.toString(), "/api/application/"+toEdit.getId().toString())
                     .add(Link.METHOD.toString(), "DELETE")
                     .build();
 
             JsonObject viewLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "VIEW")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/application/"+application.getString("applicationId"))
+                    .add(Link.HREF.toString(), "/api/application/"+toEdit.getId().toString())
                     .add(Link.METHOD.toString(), "GET")
                     .build();
 
@@ -142,11 +147,11 @@ public class ApplicationServicesImpl implements ApplicationServices {
 
             applicationCrudService.updateEntity(toEdit);
 
-
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The application was successfully updated.")
+                    .add("Application",new Gson().toJson(toEdit))
                     .add("Link", Json.createArrayBuilder()
                             .add(deleteLink)
                             .add(viewLink)
@@ -154,11 +159,11 @@ public class ApplicationServicesImpl implements ApplicationServices {
                     .build();
 
         }catch (Exception e){
-            log.log(Level.WARNING, "There was an error retrieving the application", e);
+            log.log(Level.WARNING, "There was an error updating the application", e);
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), false)
                     .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully retrieved.")
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully updated.")
                     .build();
         }
     }
@@ -178,14 +183,14 @@ public class ApplicationServicesImpl implements ApplicationServices {
             JsonObject deleteLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "REMOVE")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/application/id")
+                    .add(Link.HREF.toString(), "/api/application/"+toView.getId().toString())
                     .add(Link.METHOD.toString(), "DELETE")
                     .build();
 
             JsonObject editLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "EDIT")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/application/id")
+                    .add(Link.HREF.toString(), "/api/application/")
                     .add(Link.METHOD.toString(), "PUT")
                     .build();
 
@@ -231,30 +236,30 @@ public class ApplicationServicesImpl implements ApplicationServices {
                 JsonObject deleteLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "REMOVE")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/application/" + a.getId().toString())
+                        .add(Link.HREF.toString(), "/api/application/" + a.getId().toString())
                         .add(Link.METHOD.toString(), "DELETE")
                         .build();
 
                 JsonObject editLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "EDIT")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/application/"+a.getId().toString())
+                        .add(Link.HREF.toString(), "/api/application/")
                         .add(Link.METHOD.toString(), "PUT")
                         .build();
 
                 JsonObject viewLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "VIEW")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/application/"+a.getId().toString())
+                        .add(Link.HREF.toString(), "/api/application/"+a.getId().toString())
                         .add(Link.METHOD.toString(), "GET")
                         .build();
 
                 builder.add(
                         Json.createObjectBuilder()
-                                .add("Name", a.getName())
-                                .add("ShortDescription", a.getShortDescription())
-                                .add("LongDescription", a.getLongDescription())
-                                .add("ID", a.getId().toString())
+                                .add("name", a.getName())
+                                .add("shortDescription", a.getShortDescription())
+                                .add("longDescription", a.getLongDescription())
+                                .add("applicationId", a.getId().toString())
                                 .add("Link", Json.createArrayBuilder()
                                                 .add(viewLink)
                                                 .add(editLink)
@@ -292,10 +297,29 @@ public class ApplicationServicesImpl implements ApplicationServices {
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not removed. Something went wrong while looking for the Application")
                         .build();
+
             //remove all targets that depend on the application(Price Ranges)
             List<PriceRange> priceRanges = toRemove.getPriceRanges();
 
             priceRanges.forEach(priceRangeCrudService::deleteEntity);
+
+            //first remove reference from company
+            List<Company> companies = companyCrudService.getAllEntities();
+
+            if(companies == null || companies.size() <= 0)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The user was not removed properly. The company the user registered against does not exist.")
+                        .build();
+
+            for(User u:companies.get(0).getUsers()) {
+                if (toRemove.getId().equals(u.getId())) {
+                    companies.get(0).getUsers().remove(u);
+                    companyCrudService.updateEntity(companies.get(0));
+                    break;
+                }
+            }
 
             applicationCrudService.deleteEntity(toRemove);
 
