@@ -58,8 +58,18 @@ public interface ClientServices {
      * Returns a JsonObject stating whether the Client was successfully removed on the
      * Skywalk Licensing Application
      *
-     * @param  clientId the ObjectId representing the client to remove on the Skywalk License Application
-     * @return          the JsonObject stating if removal was successful or not
+     * @param  clientToRemove the ObjectId representing the client, the application to remove on the Skywalk License Application
+     * @return                the JsonObject stating if removal was successful or not
      */
-    JsonObject removeClient(ObjectId clientId);
+    JsonObject removeClient(JsonObject clientToRemove);
+
+    /**
+     *
+     * Returns a JsonObject stating whether the Client was successfully added to the Application
+     * Skywalk Licensing Application
+     *
+     * @param  client the JsonObject representing the applicationId and the clientId to link on the Skywalk License Application
+     * @return 		  the JsonObject stating if linking was successful or not
+     */
+    JsonObject assignClientToApplication(JsonObject client);
 }

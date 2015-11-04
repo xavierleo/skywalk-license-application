@@ -15,4 +15,6 @@ public interface PriceRangeServices {
     JsonObject deletePriceRange(JsonObject priceRange);
 
     JsonObject viewPriceRange(String priceRangeId);
+
+    JsonObject viewAllPriceRangesForApplication(String applicationId);
 }

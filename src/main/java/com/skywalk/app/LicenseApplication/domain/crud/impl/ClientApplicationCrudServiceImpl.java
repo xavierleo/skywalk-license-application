@@ -2,6 +2,7 @@ package main.java.com.skywalk.app.LicenseApplication.domain.crud.impl;
 
 import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.ClientApplicationCrudService;
+import main.java.com.skywalk.app.LicenseApplication.domain.models.Client;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.ClientApplication;
 import main.java.com.skywalk.app.LicenseApplication.domain.repository.CrudRepository;
 import org.bson.types.ObjectId;
@@ -74,8 +75,8 @@ public class ClientApplicationCrudServiceImpl implements ClientApplicationCrudSe
         log.info("Started getClientApplicationByClientAndAppId: " + ClientApplication.class.getName());
         Query<ClientApplication> clientApplication = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(ClientApplication.class);
         clientApplication.and(
-                clientApplication.disableValidation().criteria("application.id").equal(applicationId),
-                clientApplication.disableValidation().criteria("client.id").equal(clientId)
+                clientApplication.disableValidation().criteria("application.$id").equal(applicationId),
+                clientApplication.disableValidation().criteria("client.$id").equal(clientId)
         );
         return clientApplication.get();
     }
@@ -83,8 +84,10 @@ public class ClientApplicationCrudServiceImpl implements ClientApplicationCrudSe
     @Override
     public List<ClientApplication> getClientApplicationByClientId(ObjectId clientId) {
         log.info("Started getClientApplicationByClientAndAppId: " + ClientApplication.class.getName());
+        Client c = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(Client.class).field("_id").equal(clientId).get();
+
         Query<ClientApplication> clientApplication = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(ClientApplication.class);
-        clientApplication.disableValidation().criteria("client.id").equal(clientId);
+        clientApplication.disableValidation().criteria("client.$id").equal(clientId);
         return clientApplication.asList();
     }
 }

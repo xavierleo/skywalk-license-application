@@ -67,16 +67,6 @@ public interface ApplicationServices {
 	 */
 	JsonObject removeApplication(ObjectId applicationId);
 
-    /**
-     *
-     * Returns a JsonObject stating whether the Client was successfully added to the Application
-     * Skywalk Licensing Application
-     *
-     * @param  application the JsonObject representing the applicationId and the clientId to link on the Skywalk License Application
-     * @return 			   the JsonObject stating if linking was successful or not
-     */
-    JsonObject assignClientToApplication(JsonObject application);
-
 	/**
 	 *
 	 * Returns a JsonObject stating whether the Client was successfully added to the Application
