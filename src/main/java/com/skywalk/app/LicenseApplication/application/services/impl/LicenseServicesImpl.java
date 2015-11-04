@@ -16,13 +16,13 @@ import main.java.com.skywalk.app.LicenseApplication.domain.crud.impl.LicenseCrud
 import main.java.com.skywalk.app.LicenseApplication.domain.factory.Factory;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.*;
 import org.bson.types.ObjectId;
-import org.joda.time.DateTime;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.ws.rs.core.MediaType;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -55,9 +55,9 @@ public class LicenseServicesImpl implements LicenseServices{
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the application id to was not a valid id.")
                         .build();
 
-            Application toRetrievePriceRanges = applicationCrudService.findEntityById(new ObjectId(newLicenseDetails.getString("applicationId")));
+            Application toRetrievePriceRanges = applicationCrudService.findEntityById(new ObjectId(newLicenseDetails.getJsonObject("Application").getString("applicationId")));
             //check client id is valid
-            if(!ObjectId.isValid(newLicenseDetails.getJsonObject("Client").getString("applicationId")))
+            if(!ObjectId.isValid(newLicenseDetails.getJsonObject("Client").getString("clientId")))
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
@@ -66,132 +66,108 @@ public class LicenseServicesImpl implements LicenseServices{
 
             Client toGenerateLicenseFor = clientCrudService.findEntityById(new ObjectId(newLicenseDetails.getJsonObject("Client").getString("clientId")));
 
-            //check if the client is already linked to the application
-            ClientApplication clientApplication = clientApplicationCrudService.getClientApplicationByClientAndAppId(toGenerateLicenseFor.getId(),toRetrievePriceRanges.getId());
-
-            if(clientApplication==null){
-                //link to the application
-                //first create the bridge
+            //link to the application
+            //first create the bridge
+            ClientApplication clientApplication = null;
+            if (toGenerateLicenseFor == null){
                 clientApplication = new ClientApplication();
                 clientApplication.setId(new ObjectId());
                 clientApplication.setApplication(toRetrievePriceRanges);
                 clientApplication.setClient(toGenerateLicenseFor);
 
                 clientApplicationCrudService.createEntity(clientApplication);
+            }
 
-                ClientApplication created = clientApplicationCrudService.findEntityById(clientApplication.getId());
+            //get price ranges for Application
+            List<PriceRange> priceRanges = toRetrievePriceRanges.getPriceRanges();
 
-                if(created == null)
-                    return Json.createObjectBuilder()
-                            .add(ResponseCodes.SUCCESS.toString(), false)
-                            .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                            .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully linked to the client.")
-                            .build();
+            PriceRange toBeUsed = null;
 
-                toRetrievePriceRanges.getClientApplications().add(created);
-                //update the application
-                applicationCrudService.updateEntity(toRetrievePriceRanges);
-
-                toGenerateLicenseFor.getClientApplications().add(created);
-                //update the client
-                clientCrudService.updateEntity(toGenerateLicenseFor);
-
-                //get price ranges for Application
-                List<PriceRange> priceRanges = toRetrievePriceRanges.getPriceRanges();
-
-                PriceRange toBeUsed = null;
-
-                for(PriceRange pr:priceRanges){
-                    if(newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") >= pr.getMinAmountUsers() && newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") <= pr.getMaxAmountUsers()) {
-                        toBeUsed = pr;
-                        break;
-                    }
+            for(PriceRange pr:priceRanges){
+                if(newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") >= pr.getMinAmountUsers() && newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") <= pr.getMaxAmountUsers()) {
+                    toBeUsed = pr;
+                    break;
                 }
-
-                if(toBeUsed == null)
-                    return Json.createObjectBuilder()
-                            .add(ResponseCodes.SUCCESS.toString(), false)
-                            .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                            .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error finding a price range for the amount of users requested. Please contact the administrator.")
-                            .build();
-
-                //What we get from front end
-                //Description, Start Date, End Date, Payment Type, Total Requested Users
-                //To Be Generated
-                //Next Invoice Date, Total License Fee, Available Users
-                JsonObject licenseDetails = Json.createObjectBuilder()
-                        .add("description", newLicenseDetails.getJsonObject("License").getString("description"))
-                        .add("paymentType", newLicenseDetails.getJsonObject("License").getString("paymentType"))
-                        .add("totalRequestedUsers", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
-                        .add("totalAvailableUsers", toBeUsed.getMaxAmountUsers() - newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
-                        .add("licenseFee", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") * toBeUsed.getFinalPriceWithDiscount())
-                        .add("startDate", newLicenseDetails.getJsonObject("License").getString("startDate"))
-                        .add("endDate", newLicenseDetails.getJsonObject("License").getString("endDate"))
-                        .add("nextInvoiceDate", (DateTime.now().getDayOfMonth()>=22)?""+DateTime.now().plusMonths(1):""+DateTime.now().plus(22 - DateTime.now().getDayOfMonth()))
-                        .build();
-
-                License l = Factory.buildLicense(licenseDetails);
-
-                //persist the license
-                licenseCrudService.createEntity(l);
-
-                //update client with the new generated license
-                License createdLicense = licenseCrudService.findEntityById(l.getId());
-
-                if(createdLicense == null)
-                    return Json.createObjectBuilder()
-                            .add(ResponseCodes.SUCCESS.toString(), false)
-                            .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                            .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error creating the license. Please contact the administrator.")
-                            .build();
-
-                clientApplication.getLicenses().add(createdLicense);
-
-                clientApplicationCrudService.updateEntity(clientApplication);
-
-                Gson pojoParser = new Gson();
-
-                JsonObject deleteLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "REMOVE")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+created.getId().toString())
-                        .add(Link.METHOD.toString(), "DELETE")
-                        .build();
-
-                JsonObject viewLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "VIEW")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+created.getId().toString())
-                        .add(Link.METHOD.toString(), "GET")
-                        .build();
-
-                JsonObject updateLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "VIEW")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+created.getId().toString())
-                        .add(Link.METHOD.toString(), "PUT")
-                        .build();
-
-
-                return Json.createObjectBuilder()
-                        .add(ResponseCodes.SUCCESS.toString(), true)
-                        .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
-                        .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The client was successfully registered.")
-                        .add("License", pojoParser.toJson(created))
-                        .add("Links", Json.createArrayBuilder()
-                                .add(viewLicenseLink)
-                                .add(deleteLicenseLink)
-                                .add(updateLicenseLink)
-                                .build())
-                        .build();
-            }else{
-                //check if client already has a license for the application and let the user now
+            }
+            if(toBeUsed == null)
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client is already linked to the application and most likely has a license already please try updated instead.")
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error finding a price range for the amount of users requested. Please contact the administrator.")
                         .build();
+
+            //What we get from front end
+            //Description, Start Date, End Date, Payment Type, Total Requested Users
+            //To Be Generated
+            //Next Invoice Date, Total License Fee, Available Users
+            JsonObject licenseDetails = Json.createObjectBuilder()
+                    .add("description", newLicenseDetails.getJsonObject("License").getString("description"))
+                    .add("paymentType", newLicenseDetails.getJsonObject("License").getString("paymentType"))
+                    .add("totalRequestedUsers", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
+                    .add("totalAvailableUsers", toBeUsed.getMaxAmountUsers() - newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
+                    .add("licenseFee", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") * toBeUsed.getFinalPriceWithDiscount())
+                    .add("startDate", newLicenseDetails.getJsonObject("License").getString("startDate"))
+                    .add("endDate", newLicenseDetails.getJsonObject("License").getString("endDate"))
+                    .add("nextInvoiceDate", newLicenseDetails.getJsonObject("License").getString("nextInvoiceDate"))
+                    .build();
+            License l = Factory.buildLicense(licenseDetails);
+
+
+            if(clientApplication == null) {
+                ClientApplication exists = clientApplicationCrudService.getClientApplicationByClientAndAppId(toGenerateLicenseFor.getId(),toRetrievePriceRanges.getId());
+                l.setClientApplication(exists);
+                licenseCrudService.createEntity(l);
+            }else{
+                l.setClientApplication(clientApplication);
+                licenseCrudService.createEntity(l);
             }
+
+            //update client with the new generated license
+            License createdLicense = licenseCrudService.findEntityById(l.getId());
+
+            if(createdLicense == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error creating the license. Please contact the administrator.")
+                        .build();
+
+            Gson pojoParser = new Gson();
+
+            JsonObject deleteLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/"+createdLicense.getId().toString())
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject viewLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/"+createdLicense.getId().toString())
+                    .add(Link.METHOD.toString(), "GET")
+                    .build();
+
+            JsonObject updateLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/")
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
+
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The license was successfully registered.")
+                    .add("License", pojoParser.toJson(createdLicense))
+                    .add("Links", Json.createArrayBuilder()
+                            .add(viewLicenseLink)
+                            .add(deleteLicenseLink)
+                            .add(updateLicenseLink)
+                            .build())
+                    .build();
+
         }catch (Exception e){
             log.log(Level.WARNING, "There was an error generating the license for client and application", e);
             return Json.createObjectBuilder()
@@ -214,7 +190,7 @@ public class LicenseServicesImpl implements LicenseServices{
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the application id to was not a valid id.")
                         .build();
 
-            Application toRetrievePriceRanges = applicationCrudService.findEntityById(new ObjectId(licenseDetails.getString("applicationId")));
+            Application toRetrievePriceRanges = applicationCrudService.findEntityById(new ObjectId(licenseDetails.getJsonObject("Application").getString("applicationId")));
             //check client id is valid
             if(!ObjectId.isValid(licenseDetails.getJsonObject("Client").getString("clientId")))
                 return Json.createObjectBuilder()
@@ -249,60 +225,41 @@ public class LicenseServicesImpl implements LicenseServices{
                             .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error finding a price range for the amount of users requested. Please contact the administrator.")
                             .build();
 
-                //What we get from front end
-                //Description, Start Date, End Date, Payment Type, Total Requested Users
-                //To Be Generated
-                //Next Invoice Date, Total License Fee, Available Users
-                JsonObject updatedLicenseDetails = Json.createObjectBuilder()
-                        .add("description", licenseDetails.getJsonObject("License").getString("description"))
-                        .add("paymentType", licenseDetails.getJsonObject("License").getString("paymentType"))
-                        .add("totalRequestedUsers", licenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
-                        .add("totalAvailableUsers", toBeUsed.getMaxAmountUsers() - licenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
-                        .add("licenseFee", licenseDetails.getJsonObject("License").getInt("totalRequestedUsers") * toBeUsed.getFinalPriceWithDiscount())
-                        .add("startDate", licenseDetails.getJsonObject("License").getString("startDate"))
-                        .add("endDate", licenseDetails.getJsonObject("License").getString("endDate"))
-                        .add("nextInvoiceDate", (DateTime.now().getDayOfMonth()>=22)?""+DateTime.now().plusMonths(1):""+DateTime.now().plus(22 - DateTime.now().getDayOfMonth()))
-                        .build();
-
-                License l = Factory.buildLicense(updatedLicenseDetails);
-
-                //persist the license
-                licenseCrudService.createEntity(l);
+                SimpleDateFormat format = new SimpleDateFormat("yyyy/mm/dd");
 
                 //update client with the new generated license
-                License createdLicense = licenseCrudService.findEntityById(l.getId());
+                License licenseToUpdate = licenseCrudService.findEntityById(new ObjectId(licenseDetails.getJsonObject("License").getString("licenseId")));
+                licenseToUpdate.setDescription(licenseDetails.getJsonObject("License").getString("description"));
+                licenseToUpdate.setPaymentType(licenseDetails.getJsonObject("License").getString("paymentType"));
+                licenseToUpdate.setTotalRequestedUsers(licenseDetails.getJsonObject("License").getInt("totalRequestedUsers"));
+                licenseToUpdate.setTotalAvailableUsers(toBeUsed.getMaxAmountUsers() - licenseDetails.getJsonObject("License").getInt("totalRequestedUsers"));
+                licenseToUpdate.setLicenseFee(licenseDetails.getJsonObject("License").getInt("totalRequestedUsers") * toBeUsed.getFinalPriceWithDiscount());
+                licenseToUpdate.setStartDate(format.parse(licenseDetails.getJsonObject("License").getString("startDate")));
+                licenseToUpdate.setEndDate((format.parse(licenseDetails.getJsonObject("License").getString("endDate"))));
+                licenseToUpdate.setInvoiceDate(format.parse(licenseDetails.getJsonObject("License").getString("nextInvoiceDate")));
 
-                if(createdLicense == null)
-                    return Json.createObjectBuilder()
-                            .add(ResponseCodes.SUCCESS.toString(), false)
-                            .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                            .add(ResponseCodes.ERROR_MESSAGE.toString(), "There was an error creating the license. Please contact the administrator.")
-                            .build();
-
-                clientApplication.getLicenses().add(createdLicense);
-
-                clientApplicationCrudService.updateEntity(clientApplication);
+                licenseCrudService.updateEntity(licenseToUpdate);
 
                 Gson pojoParser = new Gson();
 
                 JsonObject deleteLicenseLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "REMOVE")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+createdLicense.getId().toString())
+                        .add(Link.HREF.toString(), "/api/license/"+licenseToUpdate.getId().toString())
                         .add(Link.METHOD.toString(), "DELETE")
                         .build();
 
                 JsonObject viewLicenseLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "VIEW")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+createdLicense.getId().toString())
+                        .add(Link.HREF.toString(), "/api/license/"+licenseToUpdate.getId().toString())
                         .add(Link.METHOD.toString(), "GET")
                         .build();
 
                 JsonObject updateLicenseLink = Json.createObjectBuilder()
                         .add(Link.REL.toString(), "VIEW")
                         .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+createdLicense.getId().toString())
+                        .add(Link.HREF.toString(), "/api/license/"+licenseToUpdate.getId().toString())
                         .add(Link.METHOD.toString(), "PUT")
                         .build();
 
@@ -311,7 +268,7 @@ public class LicenseServicesImpl implements LicenseServices{
                         .add(ResponseCodes.SUCCESS.toString(), true)
                         .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                         .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The license was successfully updated.")
-                        .add("License", pojoParser.toJson(createdLicense))
+                        .add("License", pojoParser.toJson(licenseToUpdate))
                         .add("Links", Json.createArrayBuilder()
                                 .add(viewLicenseLink)
                                 .add(deleteLicenseLink)
@@ -347,35 +304,36 @@ public class LicenseServicesImpl implements LicenseServices{
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the application id to was not a valid id.")
                         .build();
 
-            Application toViewLicense = applicationCrudService.findEntityById(new ObjectId(licenseDetails.getString("applicationId")));
             //check client id is valid
-            if(!ObjectId.isValid(licenseDetails.getJsonObject("Application").getString("clientId")))
+            if(!ObjectId.isValid(licenseDetails.getJsonObject("Client").getString("clientId")))
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found, the client id to was not a valid id.")
                         .build();
 
-            Client toViewLicenseFor = clientCrudService.findEntityById(new ObjectId(licenseDetails.getJsonObject("Client").getString("clientId")));
+            License toView = licenseCrudService.getLicenseForApplicationByClientAndAppId(new ObjectId(licenseDetails.getJsonObject("Client").getString("clientId")),new ObjectId(licenseDetails.getJsonObject("Application").getString("applicationId")));
 
-
-            //find the latest license for the client and application
-            ClientApplication forClientAndApp = clientApplicationCrudService.getClientApplicationByClientAndAppId(toViewLicenseFor.getId(),toViewLicense.getId());
-
+            if(toView==null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The license was not successfully retrieved. The license could not be found with the client and application id provided.")
+                        .build();
 
             Gson pojoParser = new Gson();
 
             JsonObject deleteLicenseLink = Json.createObjectBuilder()
                     .add(Link.REL.toString(), "REMOVE")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/license/" + forClientAndApp.getLicenses().get(0).getId().toString())
+                    .add(Link.HREF.toString(), "/api/license/" + toView.getId().toString())
                     .add(Link.METHOD.toString(), "DELETE")
                     .build();
 
             JsonObject updateLicenseLink = Json.createObjectBuilder()
-                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.REL.toString(), "UPDATE")
                     .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                    .add(Link.HREF.toString(), "http://server.url.com/license/" + forClientAndApp.getLicenses().get(0).getId().toString())
+                    .add(Link.HREF.toString(), "/api/license/")
                     .add(Link.METHOD.toString(), "PUT")
                     .build();
 
@@ -384,7 +342,7 @@ public class LicenseServicesImpl implements LicenseServices{
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The license for the client was successfully retrieved.")
-                    .add("License", pojoParser.toJson(forClientAndApp.getLicenses().get(0)))
+                    .add("License", pojoParser.toJson(toView))
                     .add("Links", Json.createArrayBuilder()
                             .add(deleteLicenseLink)
                             .add(updateLicenseLink)
@@ -403,43 +361,41 @@ public class LicenseServicesImpl implements LicenseServices{
 
     @Override
     public JsonObject viewAllLicenseForClient(ObjectId clientId) {
-        List<ClientApplication> toViewLicensesFor = clientApplicationCrudService.getClientApplicationByClientId(clientId);
 
+        List<License> toView = licenseCrudService.getLicenseByClientId(clientId);
         JsonArrayBuilder allLicenses = Json.createArrayBuilder();
-        for(ClientApplication clientApp: toViewLicensesFor ){
-            for(License license: clientApp.getLicenses()){
-                Gson pojoParser = new Gson();
+        for(License license: toView){
+            Gson pojoParser = new Gson();
 
-                JsonObject deleteLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "REMOVE")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+license.getId().toString())
-                        .add(Link.METHOD.toString(), "DELETE")
-                        .build();
+            JsonObject deleteLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/" + license.getId().toString())
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
 
-                JsonObject viewLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "VIEW")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+license.getId().toString())
-                        .add(Link.METHOD.toString(), "GET")
-                        .build();
+            JsonObject viewLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "UPDATE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/")
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
 
-                JsonObject updateLicenseLink = Json.createObjectBuilder()
-                        .add(Link.REL.toString(), "VIEW")
-                        .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
-                        .add(Link.HREF.toString(), "http://server.url.com/license/"+license.getId().toString())
-                        .add(Link.METHOD.toString(), "PUT")
-                        .build();
+            JsonObject updateLicenseLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "VIEW")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/license/")
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
 
-                allLicenses.add(Json.createObjectBuilder()
-                                .add("License", pojoParser.toJson(license))
-                                .add("Links", Json.createArrayBuilder()
-                                                .add(deleteLicenseLink)
-                                                .add(updateLicenseLink)
-                                                .add(viewLicenseLink)
-                                ).build()
-                );
-            }
+            allLicenses.add(Json.createObjectBuilder()
+                            .add("License", pojoParser.toJson(license))
+                            .add("Links", Json.createArrayBuilder()
+                                            .add(deleteLicenseLink)
+                                            .add(updateLicenseLink)
+                                            .add(viewLicenseLink)
+                            ).build()
+            );
         }
         JsonArray toReturn = allLicenses.build();
 
@@ -460,36 +416,18 @@ public class LicenseServicesImpl implements LicenseServices{
     }
 
     @Override
-    public JsonObject removeLicenseForClientAndApplication(JsonObject licenseDetails) {
+    public JsonObject removeLicenseForClientAndApplication(ObjectId licenseId) {
         try{
-            //check application id is valid
-            if(!ObjectId.isValid(licenseDetails.getJsonObject("Application").getString("applicationId")))
+            licenseCrudService.deleteEntityById(licenseId);
+
+            License removed = licenseCrudService.findEntityById(licenseId);
+
+            if(removed != null)
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the application id to was not a valid id.")
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The license was not successfully removed. Something went wrong after removal please contact administrator.")
                         .build();
-
-            Application toRemoveClientLicenseFrom = applicationCrudService.findEntityById(new ObjectId(licenseDetails.getString("applicationId")));
-            //check client id is valid
-            if(!ObjectId.isValid(licenseDetails.getJsonObject("Client").getString("clientId")))
-                return Json.createObjectBuilder()
-                        .add(ResponseCodes.SUCCESS.toString(), false)
-                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
-                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found, the client id to was not a valid id.")
-                        .build();
-
-            Client toRemoveLicenseFrom = clientCrudService.findEntityById(new ObjectId(licenseDetails.getJsonObject("Client").getString("clientId")));
-            //find the latest license for the client and application
-            ClientApplication forClientAndApp = clientApplicationCrudService.getClientApplicationByClientAndAppId(toRemoveLicenseFrom.getId(),toRemoveClientLicenseFrom.getId());
-
-            //remove all the licenses and the client application link
-            forClientAndApp.getLicenses().forEach(
-                    licenseCrudService::deleteEntity
-            );
-
-            //remove the client application link
-            clientApplicationCrudService.deleteEntity(forClientAndApp);
 
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)

@@ -5,6 +5,7 @@ import java.util.Date;
 import javax.validation.constraints.Future;
 import javax.validation.constraints.NotNull;
 
+import jdk.nashorn.internal.ir.annotations.Reference;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
@@ -36,4 +37,7 @@ public class License{
 	@NotNull private int totalAvailableUsers;
 
 	@NotNull private double licenseFee;
+
+	@Reference
+	private ClientApplication clientApplication;
 }

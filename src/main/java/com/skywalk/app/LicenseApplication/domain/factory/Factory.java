@@ -5,6 +5,8 @@ import org.bson.types.ObjectId;
 import org.jasypt.util.password.StrongPasswordEncryptor;
 
 import javax.json.JsonObject;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -75,17 +77,18 @@ public class Factory {
         p.setFinalPriceWithDiscount((Double.valueOf(priceRange.getString("priceForUsersInRange"))*(Double.valueOf(priceRange.getString("discountPercentage"))/100))+Double.valueOf(priceRange.getString("priceForUsersInRange")));
         return p;
     }
-    public static License buildLicense(JsonObject license){
+    public static License buildLicense(JsonObject license) throws ParseException{
+        SimpleDateFormat format = new SimpleDateFormat("yyyy/mm/dd");
         License l = new License();
         l.setId(new ObjectId());
         l.setDescription(license.getString("description"));
         l.setPaymentType(license.getString("paymentType"));
         l.setTotalRequestedUsers(license.getInt("totalRequestedUsers"));
         l.setTotalAvailableUsers(license.getInt("totalAvailableUsers"));
-        l.setLicenseFee(Double.valueOf(license.getString("licenseFee")));
-        l.setInvoiceDate(new Date(license.getString("invoiceDate")));
-        l.setStartDate(new Date(license.getString("startDate")));
-        l.setEndDate(new Date(license.getString("endDate")));
+        l.setLicenseFee(license.getInt("licenseFee"));
+        l.setInvoiceDate(format.parse(license.getString("nextInvoiceDate")));
+        l.setStartDate(format.parse(license.getString("startDate")));
+        l.setEndDate(format.parse(license.getString("endDate")));
         return l;
     }
 }

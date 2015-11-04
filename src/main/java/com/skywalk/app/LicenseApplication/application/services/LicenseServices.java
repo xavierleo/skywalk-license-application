@@ -55,8 +55,8 @@ public interface LicenseServices {
      *
      * Returns a JsonObject stating whether the License was successfully removed on the  Skywalk Licensing Application
      *
-     * @param  licenseDetails the JsonObject representing the application id and client id to use as a filter to remove the License on the Skywalk License Application
-     * @return the 			  JsonObject stating if removal was successful or not
+     * @param  licenseId the ObjectId representing the id to use as a filter to remove the License on the Skywalk License Application
+     * @return the 	     JsonObject stating if removal was successful or not
      */
-    JsonObject removeLicenseForClientAndApplication(JsonObject licenseDetails);
+    JsonObject removeLicenseForClientAndApplication(ObjectId licenseId);
 }

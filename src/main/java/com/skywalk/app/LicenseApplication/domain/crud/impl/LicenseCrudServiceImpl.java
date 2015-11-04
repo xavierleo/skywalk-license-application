@@ -2,6 +2,7 @@ package main.java.com.skywalk.app.LicenseApplication.domain.crud.impl;
 
 import lombok.extern.java.Log;
 import main.java.com.skywalk.app.LicenseApplication.domain.crud.LicenseCrudService;
+import main.java.com.skywalk.app.LicenseApplication.domain.models.ClientApplication;
 import main.java.com.skywalk.app.LicenseApplication.domain.models.License;
 import main.java.com.skywalk.app.LicenseApplication.domain.repository.CrudRepository;
 import org.bson.types.ObjectId;
@@ -66,5 +67,24 @@ public class LicenseCrudServiceImpl implements LicenseCrudService {
         Query<License> application = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(License.class).field("_id").equal(id);
         CrudRepository.INSTANCE.getDatastore("license-app").findAndDelete(application);
         log.info("Compeleted deleteEntityById: " + License.class.getName());
+    }
+
+    @Override
+    public License getLicenseForApplicationByClientAndAppId(ObjectId clientId, ObjectId applicationId) {
+        log.info("Started getLicenseForApplicationByClientAndAppId: " + ClientApplication.class.getName());
+        Query<License> license = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(License.class);
+        license.and(
+                license.disableValidation().criteria("clientApplication.application.$id").equal(applicationId),
+                license.disableValidation().criteria("clientApplication.client.$id").equal(clientId)
+        );
+        return license.get();
+    }
+
+    @Override
+    public List<License> getLicenseByClientId(ObjectId clientId) {
+        log.info("Started getLicenseForApplicationByClientAndAppId: " + ClientApplication.class.getName());
+        Query<License> license = CrudRepository.INSTANCE.getDatastore("license-app").createQuery(License.class);
+        license.disableValidation().criteria("clientApplication.client.$id").equal(clientId);
+        return license.asList();
     }
 }
