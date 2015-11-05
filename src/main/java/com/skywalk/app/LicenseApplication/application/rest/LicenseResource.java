@@ -70,4 +70,15 @@ public class LicenseResource {
 
         return Response.ok(output.toString()).build();
     }
+
+    @PUT
+    @Path("remaining")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response viewRemainingUsersForClientAndApplication(String license){
+        JsonReader reader = Json.createReader(new StringReader(license));
+        JsonObject output = licenseServices.checkClientAvailabilityForApplication(reader.readObject());
+
+        return Response.ok(output.toString()).build();
+    }
 }

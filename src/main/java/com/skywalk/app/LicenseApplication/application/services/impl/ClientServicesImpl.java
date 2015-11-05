@@ -536,4 +536,65 @@ public class ClientServicesImpl implements ClientServices {
         }
     }
 
+    @Override
+    public JsonObject searchClientByName(String name) {
+        try{
+            Client toView = clientCrudService.findEntityByProperty("name",name);
+
+            if(toView == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found. The client does not exist")
+                        .build();
+
+            JsonObject deleteLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/client/"+toView.getId().toString())
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject editLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "EDIT")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/client/")
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The client was successfully retrieved.")
+                    .add("Client", Json.createObjectBuilder()
+                                    .add("id", toView.getId().toString())
+                                    .add("name", toView.getName())
+                                    .add("size", toView.getSize())
+                                    .add("ContactDetails",Json.createObjectBuilder()
+                                                    .add("email",toView.getContactDetails().getEmail())
+                                                    .add("mobile",toView.getContactDetails().getMobile())
+                                    )
+                                    .add("Liason", Json.createObjectBuilder()
+                                                    .add("liasonEmail", toView.getLiason().getLiasonEmail())
+                                                    .add("liasonNumber", toView.getLiason().getLiasonNumber())
+                                                    .add("liasonName", toView.getLiason().getName())
+                                    )
+                                    .build()
+                    )
+                    .add("Link", Json.createArrayBuilder()
+                            .add(deleteLink)
+                            .add(editLink)
+                            .build())
+                    .build();
+
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error retrieving the client", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not successfully retrieved. Something went really wrong.")
+                    .build();
+        }
+    }
+
 }

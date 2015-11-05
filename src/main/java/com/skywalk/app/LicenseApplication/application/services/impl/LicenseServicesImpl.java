@@ -160,7 +160,16 @@ public class LicenseServicesImpl implements LicenseServices{
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The license was successfully registered.")
-                    .add("License", pojoParser.toJson(createdLicense))
+                    .add("License", Json.createObjectBuilder()
+                            .add("description", newLicenseDetails.getJsonObject("License").getString("description"))
+                            .add("paymentType", newLicenseDetails.getJsonObject("License").getString("paymentType"))
+                            .add("totalRequestedUsers", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
+                            .add("totalAvailableUsers", toBeUsed.getMaxAmountUsers() - newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers"))
+                            .add("licenseFee", newLicenseDetails.getJsonObject("License").getInt("totalRequestedUsers") * toBeUsed.getFinalPriceWithDiscount())
+                            .add("startDate", newLicenseDetails.getJsonObject("License").getString("startDate"))
+                            .add("endDate", newLicenseDetails.getJsonObject("License").getString("endDate"))
+                            .add("nextInvoiceDate", newLicenseDetails.getJsonObject("License").getString("nextInvoiceDate"))
+                            .build())
                     .add("Links", Json.createArrayBuilder()
                             .add(viewLicenseLink)
                             .add(deleteLicenseLink)
@@ -441,6 +450,60 @@ public class LicenseServicesImpl implements LicenseServices{
                     .add(ResponseCodes.SUCCESS.toString(), false)
                     .add(ResponseCodes.ERROR_CODE.toString(), 400)
                     .add(ResponseCodes.ERROR_MESSAGE.toString(), "The license was not successfully removed.")
+                    .build();
+        }
+    }
+
+    @Override
+    public JsonObject checkClientAvailabilityForApplication(JsonObject clientDetails) {
+        try{
+            //check application id is valid
+            if(!ObjectId.isValid(clientDetails.getJsonObject("Application").getString("applicationId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found, the application id to was not a valid id.")
+                        .build();
+
+            //check client id is valid
+            if(!ObjectId.isValid(clientDetails.getJsonObject("Client").getString("clientId")))
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The client was not found, the client id to was not a valid id.")
+                        .build();
+
+            License toView = licenseCrudService.getLicenseForApplicationByClientAndAppId(new ObjectId(clientDetails.getJsonObject("Client").getString("clientId")),new ObjectId(clientDetails.getJsonObject("Application").getString("applicationId")));
+
+            if(toView==null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The license was not successfully retrieved. The license could not be found with the client and application id provided.")
+                        .build();
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The license for the client was successfully retrieved.")
+                    .add("License", Json.createObjectBuilder()
+                        .add("description", toView.getDescription())
+                        .add("startDate", "" + toView.getStartDate())
+                        .add("endDate", "" + toView.getEndDate())
+                        .add("nextInvoiceDate", "" + toView.getInvoiceDate())
+                        .add("totalAvailableUsers", toView.getTotalAvailableUsers())
+                        .add("totalRequestedUsers", toView.getTotalRequestedUsers())
+                        .add("licenseFee", toView.getLicenseFee())
+                        .add("paymentType", toView.getPaymentType())
+                    )
+                    .build();
+
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error retrieving the license for client and application", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The license was not successfully retrieved.")
                     .build();
         }
     }

@@ -65,4 +65,14 @@ public class ApplicationResource {
 
         return Response.ok(output.toString()).build();
     }
+
+    @GET
+    @Path("query/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response searchApplicationByName(@PathParam("name") String name){
+        log.info("ApplicationResource entered at /viewAllApplications");
+        JsonObject output = applicationServices.searchApplicationByName(name);
+
+        return Response.ok(output.toString()).build();
+    }
 }

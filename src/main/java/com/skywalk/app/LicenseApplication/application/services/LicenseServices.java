@@ -59,4 +59,13 @@ public interface LicenseServices {
      * @return the 	     JsonObject stating if removal was successful or not
      */
     JsonObject removeLicenseForClientAndApplication(ObjectId licenseId);
+
+    /**
+     *
+     * Returns a JsonObject with the specifying how many remaining user licenses the client has
+     *
+     * @param  clientDetails    the JsonObject containing the client id and application id to use as a search criteria
+     * @return                  the JsonObject value with the License Details based on the search criteria
+     */
+    JsonObject checkClientAvailabilityForApplication(JsonObject clientDetails);
 }

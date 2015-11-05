@@ -72,4 +72,12 @@ public interface ClientServices {
      * @return 		  the JsonObject stating if linking was successful or not
      */
     JsonObject assignClientToApplication(JsonObject client);
+
+    /**
+     *
+     * Returns a JsonObject stating whether the Client was successfully found on the Skywalk Licensing Application
+     * @param  name the String representing the client name on the Skywalk License Application
+     * @return 		the JsonObject returning the client found
+     */
+    JsonObject searchClientByName(String name);
 }

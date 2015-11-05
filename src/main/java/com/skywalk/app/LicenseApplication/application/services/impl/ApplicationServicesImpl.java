@@ -31,15 +31,11 @@ public class ApplicationServicesImpl implements ApplicationServices {
     private ApplicationCrudService applicationCrudService;
     private CompanyCrudService companyCrudService;
     private PriceRangeCrudService priceRangeCrudService;
-    private ClientCrudService clientCrudService;
-    private ClientApplicationCrudService clientApplicationCrudService;
 
     public ApplicationServicesImpl(){
         applicationCrudService = new ApplicationCrudServiceImpl();
         companyCrudService = new CompanyCrudServiceImpl();
         priceRangeCrudService = new PriceRangeCrudServiceImpl();
-        clientCrudService = new ClientCrudServiceImpl();
-        clientApplicationCrudService = new ClientApplicationCrudServiceImpl();
     }
 
     @Override
@@ -440,6 +436,59 @@ public class ApplicationServicesImpl implements ApplicationServices {
                                     .add(updatePriceRangeLink)
                                     .add(viewPriceRangeLink)
                                     .build())
+                            .build())
+                    .build();
+
+        }catch (Exception e){
+            log.log(Level.WARNING, "There was an error retrieving the application", e);
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), false)
+                    .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                    .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not successfully retrieved.")
+                    .build();
+        }
+    }
+
+    @Override
+    public JsonObject searchApplicationByName(String name) {
+        try{
+            Application toView = applicationCrudService.findEntityByProperty("name",name);
+
+            if(toView == null)
+                return Json.createObjectBuilder()
+                        .add(ResponseCodes.SUCCESS.toString(), false)
+                        .add(ResponseCodes.ERROR_CODE.toString(), 400)
+                        .add(ResponseCodes.ERROR_MESSAGE.toString(), "The application was not found. Something went wrong while looking for the Application")
+                        .build();
+
+            JsonObject deleteLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "REMOVE")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/application/"+toView.getId().toString())
+                    .add(Link.METHOD.toString(), "DELETE")
+                    .build();
+
+            JsonObject editLink = Json.createObjectBuilder()
+                    .add(Link.REL.toString(), "EDIT")
+                    .add(Link.DATATYPE.toString(), MediaType.APPLICATION_JSON)
+                    .add(Link.HREF.toString(), "/api/application/")
+                    .add(Link.METHOD.toString(), "PUT")
+                    .build();
+
+            return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The application was successfully retrieved.")
+                    .add("Application", Json.createObjectBuilder()
+                        .add("id", toView.getId().toString())
+                        .add("name", toView.getName())
+                        .add("shortDescription", toView.getShortDescription())
+                        .add("longDescription",toView.getLongDescription())
+                        .build()
+                    )
+                    .add("Link", Json.createArrayBuilder()
+                            .add(deleteLink)
+                            .add(editLink)
                             .build())
                     .build();
 

@@ -76,4 +76,14 @@ public interface ApplicationServices {
 	 * @return 			   the JsonObject stating if linking was successful or not
 	 */
 	JsonObject assignPriceRangeToApplication(JsonObject application);
+
+	/**
+	 *
+	 * Returns a JsonObject stating whether the Client was successfully added to the Application
+	 * Skywalk Licensing Application
+	 *
+	 * @param  name the String representing the application name on the Skywalk License Application
+	 * @return 		the JsonObject returning the application found
+	 */
+	JsonObject searchApplicationByName(String name);
 }

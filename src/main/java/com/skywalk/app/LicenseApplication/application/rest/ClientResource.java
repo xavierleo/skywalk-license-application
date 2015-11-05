@@ -73,4 +73,14 @@ public class ClientResource {
 
         return Response.ok(output.toString()).build();
     }
+
+    @GET
+    @Path("query/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response searchClientByName(@PathParam("name") String name){
+        log.info("ClientResource entered at /searchClientByName");
+        JsonObject output = clientServices.searchClientByName(name);
+
+        return Response.ok(output.toString()).build();
+    }
 }
