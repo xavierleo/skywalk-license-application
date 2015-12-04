@@ -34,12 +34,18 @@ public class CompanyServiceImpl implements CompanyService {
         try {
             List<Company> shouldBeNullOrZero = companyCrudService.getAllEntities();
 
-            if(shouldBeNullOrZero != null && shouldBeNullOrZero.size() > 0)
+            if(shouldBeNullOrZero != null && shouldBeNullOrZero.size() > 0) {
+                String companyId = "";
+                for(Company company : shouldBeNullOrZero){
+                    companyId = company.getId().toString();
+                }
                 return Json.createObjectBuilder()
+                        .add("companyId", companyId)
                         .add(ResponseCodes.SUCCESS.toString(), false)
                         .add(ResponseCodes.ERROR_CODE.toString(), 400)
                         .add(ResponseCodes.ERROR_MESSAGE.toString(), "The company does already exist.")
                         .build();
+            }
 
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)
@@ -105,12 +111,16 @@ public class CompanyServiceImpl implements CompanyService {
                     .add(Link.METHOD.toString(), "PUT")
                     .build();
 
+            JsonObject companyJson = Json.createObjectBuilder()
+                    .add("companyId", created.getId().toString())
+                    .add("company", parser.toJson(created))
+                    .build();
 
             return Json.createObjectBuilder()
                     .add(ResponseCodes.SUCCESS.toString(), true)
                     .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
                     .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "The company was successfully registered.")
-                    .add("Company", parser.toJson(created))
+                    .add("Company", companyJson)
                     .add("Links", Json.createArrayBuilder()
                         .add(viewCompanyLink)
                         .add(updateClientLink)

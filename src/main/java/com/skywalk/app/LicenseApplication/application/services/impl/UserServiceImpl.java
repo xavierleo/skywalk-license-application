@@ -134,12 +134,12 @@ public class UserServiceImpl implements UserService {
             StrongPasswordEncryptor encryptor = new StrongPasswordEncryptor();
 
             if(user.getJsonObject("User").getString("username").equals(usernameExists.getUsername()) && encryptor.checkPassword(user.getJsonObject("User").getString("password"), usernameExists.getPassword())){
-                    return Json.createObjectBuilder()
-                            .add(ResponseCodes.SUCCESS.toString(), true)
-                            .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
-                            .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "Login successful.")
-                            .add("Username",new Gson().toJson(usernameExists))
-                            .build();
+                return Json.createObjectBuilder()
+                    .add(ResponseCodes.SUCCESS.toString(), true)
+                    .add(ResponseCodes.SUCCESS_CODE.toString(), 200)
+                    .add(ResponseCodes.SUCCESS_MESSAGE.toString(), "Login successful.")
+                    .add("Username",new Gson().toJson(usernameExists))
+                    .build();
             }else{
                 return Json.createObjectBuilder()
                         .add(ResponseCodes.SUCCESS.toString(), false)

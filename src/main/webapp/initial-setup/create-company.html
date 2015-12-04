@@ -1,0 +1,135 @@
+<!doctype html>
+<html class="no-js" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Foundation | Welcome</title>
+        <link rel="stylesheet" href="../css/foundation.css" />
+        <link rel="stylesheet" href="../css/app.css" />
+    </head>
+    <body>
+        <header>
+            <nav class="top-bar">
+                <div class="top-bar-left">
+                    <ul class="dropdown menu" data-dropdown-menu>
+                        <li class="menu-text">Site Title</li>
+                    </ul>
+                </div>
+            </nav>
+        </header>
+        <div class="row">
+            <div class="small-12 columns">
+                <div class="row">
+                    <div class="small-6 small-centered columns" id="create-company">
+                <h2 class="text-center">Create Company</h2>
+                <hr>
+                <form id="registerCompanyForm" name="login-form" role="form" method="POST">
+                    <div class="row">
+                        <h2 class="text-center">Company Details</h2>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Name
+                                <input type="text" id="name" name="name" placeholder="Company Name" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Industry
+                                <input type="text" id="industry" name="industry" placeholder="Industry" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Description
+                                <input type="text" id="description" name="description" placeholder="Description" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <h2 class="text-center">SMTP Details</h2>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>SMTP Server
+                                <input type="text" id="smptServer" name="EmailConfiguration[smptServer]" placeholder="SMTP Server" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Server Port
+                                <input type="text" id="serverPort" name="EmailConfiguration[serverPort]" placeholder="Server Port" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Auth Username
+                                <input type="text" id="authUsername" name="EmailConfiguration[authUsername]" placeholder="Auth Username" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Auth Password
+                                <input type="text" id="authPassword" name="EmailConfiguration[authPassword]" placeholder="Auth Password" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Primary Account Address
+                                <input type="text" id="primaryAccountAddress" name="EmailConfiguration[primaryAccountAddress]" placeholder="Primary Account Address" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Email Signature
+                                <input type="text" id="emailSignature" name="EmailConfiguration[emailSignature]" placeholder="Email Signature" required>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Enable SMTP Authentication
+                                <select name="EmailConfiguration[enableSMTPAuthentication]" id="enableSMTPAuthentication">
+                                    <option value="True">True</option>
+                                    <option value="False">False</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <label>Enable TTLS Support
+                                <select name="EmailConfiguration[enableTTLSSupport]" id="enableTTLSSupport">
+                                    <option value="True">True</option>
+                                    <option value="False">False</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="small-8 small-centered columns">
+                            <button id="registerCompanyButton" class="button expanded">Create Company</button>
+                        </div>
+                    </div>
+                </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="../js/vendor/jquery.min.js"></script>
+        <script src="../js/vendor/what-input.min.js"></script>
+        <script src="../js/vendor/jquery.serializejson.min.js"></script>
+        <script src="../js/vendor/parsley.min.js"></script>
+        <script src="../js/foundation.min.js"></script>
+        <script src="../js/app.js"></script>
+        <script src="../js/modules/initialCompanyRegistration.js"></script>
+    </body>
+</html>
